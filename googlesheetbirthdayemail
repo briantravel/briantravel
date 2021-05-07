@@ -1,0 +1,161 @@
+/* 
+Schedule E-mails
+Copyright 2016 ©  Brian Gay 
+*/
+function onOpen() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var menu = [
+     {name: "Authorize/Check Time Zone", functionName: "authorize_"},
+     {name: "Schedule Emails", functionName: "scheduleEmails"},
+  ];  
+  ss.addMenu("Schedule E-mails", menu);
+}
+
+function authorize_() {  
+  Browser.msgBox("Time zone is set to " + SpreadsheetApp.getActive().getSpreadsheetTimeZone());
+}
+function scheduleEmails() {  
+ 
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i=0; i<triggers.length; i++)
+    if (triggers[i].getHandlerFunction() === 'sendEmails') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+      
+  var ss = SpreadsheetApp.getActive();  //this gets the active spreadsheet
+  
+  var sheet = ss.getActiveSheet(); 
+  
+  var range = sheet.getDataRange(); // this gets the range of data on the sheet
+  
+  var values = range.getValues();  // this gets the values of data in the range
+  
+  var startRow = 1;
+  
+  var time = new Date().getTime(); // gets the current time. 
+  
+  var nextMonth = time + (30*24*60*60*1000);
+  
+  var diff, triggers = [];
+ 
+  for (i=1; i<values.length; i++){   //repeats a call "i" starting in column 1 (column 2); continues as long as there are values in the range; repeats one per line ++
+   
+    //local variables
+    var schedule = values[i][6];   //creates a global variable and gets the data from column 7 labeled schedule 
+    
+    var status = values[i][7];    //creates a global variable and gets the data from column 8 labeled status 
+    
+    var sent = 'sent';
+    
+    var datePast = 'date occurs in past'
+    
+    var scheduleSet = 'Schedule Set'
+    
+    //
+    if (status === datePast){
+        sheet.getRange(startRow + i, 8).setValue("");  // Makes cell blank if that cell has 'date occurs in past' in status cell
+           }
+    if (status != sent && schedule != "" && schedule.getTime() > time && schedule.getTime() < nextMonth){   // modifying at 9:58am 4/29/16 to try and only set trigger for the next week //Sets a trigger for schedule time if email has not been set and schedule is not already set.  
+             ScriptApp.newTrigger('sendEmails')  
+            .timeBased()
+            .at(new Date(schedule))
+            .create();
+            
+            sheet.getRange(startRow + i, 8).setValue(scheduleSet);  // types 'Schedule Set' in status cell
+            Logger.log('time =' + time + '    nextMonth = ' + nextMonth);
+            }
+            
+       else if (status != sent && schedule !=  "" && schedule.getTime() < time) {
+           sheet.getRange(startRow + i, 8).setValue(datePast);  // types 'date occurs in past' in status cell
+           }
+       else {
+       continue;
+       }
+        
+}  
+}
+
+function deleteTriggers() {  
+ 
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i=0; i<triggers.length; i++)
+    if (triggers[i].getHandlerFunction() === 'sendEmails') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+    }
+
+
+    // need an if statement for status is not sent then send e-mail, else, send the e-mail at the scheduled time
+    function sendEmails(){
+    
+      var ss = SpreadsheetApp.getActive();  //this gets the active spreadsheet
+  
+      var sheet = ss.getActiveSheet(); 
+      
+      var range = sheet.getDataRange(); // this gets the range of data on the sheet
+      
+      var values = range.getValues();  // this gets the values of data in the range
+      
+      var startRow = 1;
+      
+      var time = new Date().getTime(); // gets the current time. 
+      
+      var datePast = 'date occurs in past'
+      
+      var diff, triggers = [];
+      
+      Logger.log('Loop worked at this time');
+      
+      for (i=1; i<values.length; i++){   //repeats a call "i" starting in column 1 (column 2); continues as long as there are values in the range; repeats one per line ++
+       
+        //loval variables
+        var email = values[i][0];  //gets the data from column A labeled e-mail
+        
+        var name = values[i][1];  //gets the data from column B labeled name
+        
+        var subject = values[i][2];  //gets the data from column C labeled subject 
+        
+        var message1 = values[i][3];    //creates a global variable and gets the data from column D labeled Message1... 
+        
+        var body = values[i][4];   //gets the data from column 4D labeled body 
+        
+        var schedule = values[i][6];   //creates a global variable and gets the data from column E labeled schedule 
+        
+        var status = values[i][7];    //creates a global variable and gets the data from column F labeled status 
+        
+        var sent = 'sent';
+        
+        var scheduleSet = 'Schedule Set'
+        
+        if (status === scheduleSet && schedule.getTime() <= time && message1 === ""){ //only schedule if not already sent and if a scheduled time is set, and body is Happy Birthday!
+          
+          MailApp.sendEmail({
+            to: email, 
+            subject: subject, 
+            body: 'Hi '+ name + ', \r \r' + values[1][3] + ' \r \r' + body + ' \r \r' + values[1][5], 
+            // uncomment this line to add bcc to your email  bcc: "___"});  //Sends e-mail with standard message found in D2 and signature in F2. You can personlize the second part of the message by typing some thing in colummn E.
+          
+          
+          sheet.getRange(startRow + i, 8).setValue(sent);  // types 'sent' in status cell
+          
+          scheduleEmails();
+         
+          Logger.log('Loop for happy birthday' + name + ' worked at this time ... scheduled for ' + schedule);}
+     
+        else if (status === scheduleSet && schedule.getTime() <= time){ //only schedule if not already sent and if a scheduled time is set
+          
+          MailApp.sendEmail({
+          to:email, 
+          subject:subject, 
+          body: 'Hi '+ name + ', \r \r' + values[i][3] + ' \r \r' + body + ' \r \r' + values[i][5], 
+          // uncomment this line to add bcc to your email   bcc: "___"});  //Sends e-mail with personalized message
+          
+          sheet.getRange(startRow + i, 8).setValue(sent);  // types 'sent' in status cell
+          
+          scheduleEmails();
+          
+          Logger.log('Loop for special message ' + name + ' worked at this time ... scheduled for ' + schedule);
+        }
+     }
+}
+
