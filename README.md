@@ -2,7 +2,7 @@
 - 👀 I’m interested in making the world a better place through every interaction (both physical and digital)
 - 🌱 I’m currently learning Flow
 - 💞️ I’m looking to collaborate on any project that will make peoples lives better.
-- 📫 How to reach me ... anotherlesson.com
+- 📫 How to reach me ... brian@anotherlesson.com
 
 <!---
 briantravel/briantravel is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
